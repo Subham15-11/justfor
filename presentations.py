@@ -21,10 +21,15 @@ images = sorted(os.listdir(folder_path), key=len)  # Sort by length of file name
 
 # variable to keep track of the current image index
 imageNumber = 4
-heightSmall, widthSmall = int(120 * 1.5), int(213 * 1.5)  # Height and width of the webcam image
+heightSmall, widthSmall = int(120 * 1.5), int(
+    213 * 1.5
+)  # Height and width of the webcam image
 buttonPress = False  # Variable to check if the button is pressed
 buttonDelay = 30  # Variable to check the delay of the button press
 counter = 0  # Variable to check the counter of the button press
+annotation = [[]]
+annotationStart = False  # Variable to check if the annotation is started
+annotationNumber = 0  # Variable to check the annotation number
 
 
 # Initialize HandDetector
@@ -79,6 +84,9 @@ while True:
                 if imageNumber > 0:
                     buttonPress = True  # Set the button press to true
                     imageNumber -= 1
+                    annotation = [[]]
+                    annotationStart = False
+                    annotationNumber = 0
 
             # GESTURE -2 :(If the pinky finger is up) RIGHT SWIPE
             if fingers == [0, 0, 0, 0, 1]:
@@ -86,18 +94,59 @@ while True:
                 if imageNumber < len(images) - 1:
                     buttonPress = True
                     imageNumber += 1
+                    annotation = [[]]
+                    annotationStart = False
+                    annotationNumber = 0
 
         # GESTURE -3 :(If the index finger and middle finger are up) POINTER
         if fingers == [0, 1, 1, 0, 0]:
             # print("pointer")
             cv2.circle(current_image, indexFinger, 15, (0, 255, 0), cv2.FILLED)
 
+        # GESTURE -4 :(If the index finger is up) DRAWING
+        if fingers == [0, 1, 0, 0, 0]:
+            # print("drawing")
+            if annotationStart is False:  # If the annotation is not started
+                annotationStart = True  # Set the annotation start to true
+                annotationNumber += 1  # Increment the annotation number
+                annotation.append([])  # Append a new list to the annotation list
+            cv2.circle(current_image, indexFinger, 15, (0, 255, 0), cv2.FILLED)
+            annotation[annotationNumber].append(
+                indexFinger
+            )  # Append the index finger position to the annotation list
+            
+        else:
+            annotationStart = False  # Set the annotation start to false
+
+        # GESTURE -5 :(If the index finger and middle finger and ring finger are up) POP UP
+        if fingers == [0, 1, 1, 1, 0]:
+            if annotation:
+                annotation.pop()  # Remove the last annotation if it exists
+                annotationNumber -= 1  # Decrement the annotation number
+                buttonPress = True  # Set the button press to true
+
+    else:
+        # If no hands are detected or button is pressed, reset the annotation start
+        annotationStart = False
+
     # buttonpress functionality
     if buttonPress:
         counter += 1  # Increment the counter
-        if counter > buttonDelay:  # If the counter is greater than 10
+        if counter > buttonDelay:  # If the counter is greater than the button delay
             buttonPress = False  # Set the button press to false
             counter = 0  # Reset the counter
+
+    # annotation functionality
+    for i in range(len(annotation)):
+        for j in range(len(annotation[i])):
+            if j != 0:
+                cv2.line(
+                    current_image,
+                    annotation[i][j - 1],
+                    annotation[i][j],
+                    (0, 0, 200),
+                    7,
+                )
 
     # add webcam image to the current image
     imageSmall = cv2.resize(img, (widthSmall, heightSmall))  # Resize the webcam image
