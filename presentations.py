@@ -13,14 +13,21 @@ cap = cv2.VideoCapture(0)
 cap.set(3, width)  # Set width
 cap.set(4, height)  # Set height
 
-# Get the list of images in the folder
-images = sorted(os.listdir(folder_path), key=len)  # Sort by length of file names
-# Sort the images to ensure they are in the correct order
+
+def sort_images_numerically(files):
+    return sorted(
+        files,
+        key=lambda x: int("".join(filter(str.isdigit, x))) if x[:-4].isdigit() else x,
+    )
+
+
+images = sort_images_numerically(os.listdir(folder_path))
+
 # images.sort() # strings are sorted in like 9,90,91,92
 # print(images)
 
 # variable to keep track of the current image index
-imageNumber = 4
+imageNumber = 0
 heightSmall, widthSmall = int(120 * 1.5), int(
     213 * 1.5
 )  # Height and width of the webcam image
@@ -34,7 +41,7 @@ annotationNumber = 0  # Variable to check the annotation number
 
 # Initialize HandDetector
 detector = HandDetector(
-    detectionCon=0.8, maxHands=1
+    detectionCon=0.9, maxHands=1
 )  # Change the detectionCon value to adjust the hand detection accuracy
 
 while True:
@@ -48,6 +55,9 @@ while True:
     # join the folder path with the image name
     img_path = os.path.join(folder_path, images[imageNumber])
     current_image = cv2.imread(img_path)  # Read the image from the path
+
+    if current_image is None:
+        continue
 
     # find the hands in the image
     hands, img = detector.findHands(img)  # Find the hands in the image
@@ -114,7 +124,7 @@ while True:
             annotation[annotationNumber].append(
                 indexFinger
             )  # Append the index finger position to the annotation list
-            
+
         else:
             annotationStart = False  # Set the annotation start to false
 
@@ -153,6 +163,16 @@ while True:
     height, width, _ = current_image.shape  # Get the shape of the current image
     current_image[0:heightSmall, width - widthSmall : width] = (
         imageSmall  # Add the webcam image to the current image
+    )
+
+    cv2.putText(
+        current_image,
+        f"Slide No : {imageNumber+1}/{len(images)}",
+        (50, 50),
+        cv2.FONT_HERSHEY_TRIPLEX,
+        1.5,
+        (255, 255, 255),
+        2,
     )
 
     # Display the image
